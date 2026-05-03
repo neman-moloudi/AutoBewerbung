@@ -116,16 +116,15 @@ class JobEntryApp(QMainWindow):
         # Set central widget
         self.setCentralWidget(self.main_widget)
 
-        self.job_table.itemClicked.connect(self.on_row_clicked)
+        self.job_table.cellClicked.connect(self.on_row_clicked)
 
         self.create_menu_bar()
         load_data(self.job_table)
 
-    def on_row_clicked(self, item):
-        row = item.row()
+    def on_row_clicked(self, row, col):
         self.details_label.hide()
-        for col, val_label in enumerate(self._field_values):
-            cell = self.job_table.item(row, col)
+        for c, val_label in enumerate(self._field_values):
+            cell = self.job_table.item(row, c)
             val_label.setText(cell.text() if cell and cell.text() else "-")
    
     def create_menu_bar(self):
