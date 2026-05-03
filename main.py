@@ -4,13 +4,13 @@ import shutil
 import sqlite3
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QComboBox, QDateEdit, QSpinBox,QFileDialog,
-    QTextEdit, QPushButton, QFormLayout, QScrollArea, QMessageBox,
-    QDialog, QTableWidget, QTableWidgetItem,QAbstractItemView,QHeaderView,
-    QSplitter,
+    QGridLayout, QLabel, QLineEdit, QComboBox, QDateEdit, QSpinBox,
+    QFileDialog, QTextEdit, QPushButton, QFormLayout, QScrollArea,
+    QMessageBox, QDialog, QTableWidget, QTableWidgetItem,
+    QAbstractItemView, QHeaderView, QSplitter,
 )
 from PyQt6.QtCore import QDate, Qt
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QFont
 from add_new_job import NewJobEntry
 from util import load_data
 
@@ -28,10 +28,6 @@ class JobEntryApp(QMainWindow):
         #Main Widget
         self.main_widget = QWidget()
         self.main_layout = QVBoxLayout(self.main_widget)
-
-        # Job details Value holder
-        self.job_title_ = 0
-        self.record_id = 100
 
         # create splitter
         self.splitter = QSplitter()
@@ -64,30 +60,55 @@ class JobEntryApp(QMainWindow):
         # Right Panel
         self.right_panel = QWidget()
         self.right_layout = QVBoxLayout(self.right_panel)
-        self.right_layout.addWidget(QLabel("Job Title"))
-        self.right_layout.addWidget(QLabel(str(self.job_title_)))
-        self.right_layout.addWidget(QLabel(str(self.record_id)))
+        self.right_layout.setContentsMargins(12, 12, 12, 12)
+        self.right_layout.setSpacing(8)
 
-        self.right_layout.addWidget(QLabel("Company"))
-        self.right_layout.addWidget(QLabel("Place"))
-        self.right_layout.addWidget(QLabel("Type"))
+        header = QLabel("Job Details")
+        header_font = QFont()
+        header_font.setPointSize(13)
+        header_font.setBold(True)
+        header.setFont(header_font)
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.right_layout.addWidget(header)
 
-        self.details_label = QLabel("Select a Job to view details")
+        self.details_label = QLabel("Select a job to view details")
         self.details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.details_label.setStyleSheet("color: gray; font-style: italic;")
         self.right_layout.addWidget(self.details_label)
 
-        # Right panel content
-        self.name_label = QLabel("Contact Person Name")
-        self.name_box = QLabel("-")
-        self.name_box.setStyleSheet("border: 1px solid gray; padding: 1px; background-color: #f5f5f5; color: black;")
+        # Grid for the 7 job fields
+        self._field_names = ["Title", "Company", "Place", "Type", "Status", "Salary", "Date Applied"]
+        self._field_values = []
 
-        self.right_layout.addWidget(self.name_label)
-        self.right_layout.addWidget(self.name_box)
+        grid_widget = QWidget()
+        grid = QGridLayout(grid_widget)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(10)
+        grid.setColumnStretch(1, 1)
 
-        # Add panels to splitter 
+        label_style = "font-weight: bold;"
+        value_style = "border: 1px solid #ccc; padding: 4px; background-color: #f9f9f9; border-radius: 3px;"
+
+        for row, name in enumerate(self._field_names):
+            lbl = QLabel(name + ":")
+            lbl.setStyleSheet(label_style)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+            val = QLabel("-")
+            val.setStyleSheet(value_style)
+            val.setWordWrap(True)
+
+            grid.addWidget(lbl, row, 0)
+            grid.addWidget(val, row, 1)
+            self._field_values.append(val)
+
+        self.right_layout.addWidget(grid_widget)
+        self.right_layout.addStretch()
+
+        # Add both panels to splitter
         self.splitter.addWidget(self.left_panel)
-        # splitter.addWidget(self.right_panel)
-        self.splitter.setSizes([500, 700])
+        self.splitter.addWidget(self.right_panel)
+        self.splitter.setSizes([500, 500])
 
         # Add splitter to main layout
         self.main_layout.addWidget(self.splitter)
@@ -95,26 +116,17 @@ class JobEntryApp(QMainWindow):
         # Set central widget
         self.setCentralWidget(self.main_widget)
 
-        # Connect click the job event
-        self.job_title_ = self.job_table.itemClicked.connect(self.on_row_clicked)
+        self.job_table.itemClicked.connect(self.on_row_clicked)
 
         self.create_menu_bar()
         load_data(self.job_table)
 
     def on_row_clicked(self, item):
-        "Handle when job row is clicked "
         row = item.row()
-        self.record_id = self.job_table.item(row,0).text()
-        # self.job_title_ = self.job_table.item(row, 1).text()
-        email = self.job_table.item(row, 2).text()
-        self.pop_detail()
-        return self.record_id
-    
-    def pop_detail(self):
-        print ("Hi")
-        print(self.record_id)
-        self.splitter.addWidget(self.right_panel)
-        return 0
+        self.details_label.hide()
+        for col, val_label in enumerate(self._field_values):
+            cell = self.job_table.item(row, col)
+            val_label.setText(cell.text() if cell and cell.text() else "-")
    
     def create_menu_bar(self):
         menu_bar = self.menuBar()
@@ -146,7 +158,7 @@ class JobEntryApp(QMainWindow):
         #     print("New job canceled.")
     
     def on_refresh(self):
-        load_data(self.table)
+        load_data(self.job_table)
     
 if __name__ == "__main__" :
     app = QApplication(sys.argv)
